@@ -2,7 +2,8 @@
 #define MESSAGES_H
 
 #include <stdint.h> /*  */
-#include <sstream> /* */
+#include <string> /* */
+#include <cstring>
 
 #include "serial.h"
 
@@ -51,21 +52,27 @@ enum DevNames {
 /// Number of the devs
 static const uint8_t DevAmount = 6;
 
-void revertBytes(int16_t *var);
-void revertBytes(uint16_t *var);
-void revertBytes(float *var);
+std::string transformToString(int8_t var);
+std::string transformToString(uint8_t var);
+std::string transformToString(int16_t var, bool revert = true);
+std::string transformToString(uint16_t var, bool revert = true);
+std::string transformToString(float var, bool revert = true);
 
-int16_t revertBytesRet(int16_t var);
-uint16_t revertBytesRet(uint16_t var);
-float revertBytesRet(float var);
+void pickFromString(std::string &container, int8_t &value);
+void pickFromString(std::string &container, uint8_t &value);
+void pickFromString(std::string &container, int16_t &value, bool revert=true);
+void pickFromString(std::string &container, uint16_t &value, bool revert=true);
+void pickFromString(std::string &container, float &value, bool revert=true);
 
-uint16_t getCheckSumm16b(std::iostream &msg, uint8_t length);
+uint16_t getChecksum16b(std::string &msg);
 
 /** @brief Structure for storing and processing data from the STM32 normal request message protocol
  * Shore send requests and STM send responses
  */
 struct RequestMessage
 {
+    RequestMessage();
+
     /// Length in bytes of the normal message protocol
     const static uint8_t length = 26;
 
@@ -85,7 +92,7 @@ struct RequestMessage
     uint8_t pc_reset;
     //uint16_t checksum;
 
-    friend Serial operator<<(Serial &port, const RequestMessage &req);
+    std::string formString();
 };
 
 /** @brief Structure for storing and processing data from the STM32 configuration request message protocol
@@ -93,6 +100,8 @@ struct RequestMessage
  */
 struct ConfigRequestMessage
 {
+    ConfigRequestMessage();
+
     /// Length in bytes of the configuration message protocol
     const static uint8_t length = 195;
 
@@ -110,7 +119,7 @@ struct ConfigRequestMessage
 
     //uint16_t checksum;
 
-    friend std::iostream& operator<<(std::iostream &stream, const ConfigRequestMessage &req);
+    std::string formString();
 };
 
 /** @brief Structure for storing and processing data from the STM32 configuration response message protocol
@@ -118,6 +127,8 @@ struct ConfigRequestMessage
  */
 struct ResponseMessage
 {
+    ResponseMessage();
+
     /// Length in bytes of the response message protocol
     const static uint8_t length = 72;
 
@@ -150,9 +161,8 @@ struct ResponseMessage
     uint8_t pc_errors;
 
     uint16_t checksum;
-    bool check_passed;
 
-    friend std::iostream& operator>>(std::iostream &stream, ResponseMessage &res);
+    bool parseString(std::string &input);
 };
 
 /* Direct mode */

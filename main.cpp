@@ -2,6 +2,7 @@
 #include <string>
 
 #include "serial.h"
+#include "messages.h"
 
 using namespace std;
 
@@ -15,21 +16,33 @@ int main()
 
     Serial port(file, 9600, 8, PARITY_NONE, 1);
 
-    string input;
-    cout << "Enter message to the port \" " << file << " \" " << endl;
-    cin >> input;
-    cout << "Sending message: " << input << " // Size: " << input.size() << endl;
-    port << input;
+    RequestMessage request;
+    request.march = 666;
+    request.depth = 999;
+    string output = request.formString();
 
-    string output;
+    cout << "Sending request message // Size: " << output.size() << endl;
+    port << output;
+
+    string answer;
     cout << " Waiting for the response... " << endl;
-    while(!port.bytesAvailable()) {
+    ResponseMessage response;
+    while(port.bytesAvailable() < response.length) {
 
     }
 
     cout << " Got response! Bytes: " << port.bytesAvailable() << endl;
-    string answer;
-    port >> output;
-    cout << output << endl;
+    port >> answer;
+    bool correct = response.parseString(answer);
+
+    if(correct) {
+        cout << " Response correct! " << endl;
+    }
+    else {
+        cout << " Response is broken =( " << endl;
+    }
+
+    int wait=0;
+    cin >> wait;
     return 0;
 }

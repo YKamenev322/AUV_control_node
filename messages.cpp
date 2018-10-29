@@ -1,223 +1,431 @@
 #include "messages.h"
 
-Serial operator<<(Serial &port, const RequestMessage &req)
+/** @brief Constructor for RequestMessage
+  *
+  */
+RequestMessage::RequestMessage()
 {
-    port << req.type;
-    stream << req.flags;
-
-    stream << revertBytesRet(req.march);
-    stream << revertBytesRet(req.lag);
-    stream << revertBytesRet(req.depth);
-    stream << revertBytesRet(req.roll);
-    stream << revertBytesRet(req.pitch);
-    stream << revertBytesRet(req.yaw);
+    flags = 0;
+    march = 0;
+    lag = 0;
+    depth = 0;
+    roll = 0;
+    pitch = 0;
+    yaw = 0;
 
     for(int i=0; i<DevAmount; i++) {
-        stream << req.dev[i];
+        dev[i] = 0;
     }
 
-    stream << req.dev_flags;
-    stream << req.stabilize_flags;
-    stream << req.cameras;
-    stream << req.pc_reset;
-    stream << getCheckSumm16b(stream, req.length); // do i need to revert bytes here?
-
-    return stream;
+    dev_flags = 0;
+    stabilize_flags = 0;
+    cameras = 0;
+    pc_reset = 0;
 }
 
-std::iostream& operator<<(std::iostream &stream, const ConfigRequestMessage &req)
+/** @brief Form bitwise correct string with computed 16bit checksum from the data stored in RequestMessage
+  *
+  */
+std::string RequestMessage::formString()
 {
-    //ds.setByteOrder(QDataStream::LittleEndian);
-    stream << req.type;
+    std::string container;
+    container += transformToString(type);
+    container += transformToString(flags);
 
-    for(int i=0; i<ControlAmount; i++) {
-        stream << revertBytesRet(req.depth_control[i]);
+    container += transformToString(march);
+    container += transformToString(lag);
+    container += transformToString(depth);
+    container += transformToString(roll);
+    container += transformToString(pitch);
+    container += transformToString(yaw);
+
+    for(int i=0; i<DevAmount; i++) {
+        container += transformToString(dev[i]);
     }
 
-    for(int i=0; i<ControlAmount; i++) {
-        stream << revertBytesRet(req.roll_control[i]);
-    }
+    container += transformToString(dev_flags);
+    container += transformToString(stabilize_flags);
+    container += transformToString(cameras);
+    container += transformToString(pc_reset);
 
-    for(int i=0; i<ControlAmount; i++) {
-        stream << revertBytesRet(req.pitch_control[i]);
-    }
+    uint16_t checksum = getChecksum16b(container);
+    container += transformToString(checksum, false); // do i need to revert bytes here?
 
-    for(int i=0; i<ControlAmount; i++) {
-        stream << revertBytesRet(req.yaw_control[i]);
-    }
-
-    for(int i=0; i<VmaAmount; i++) {
-        stream << req.vma_position[i];
-    }
-
-    for(int i=0; i<VmaAmount; i++) {
-        stream << req.vma_setting[i];
-    }
-
-    for(int i=0; i<VmaAmount; i++) {
-        stream << req.vma_kforward[i];
-    }
-
-    for(int i=0; i<VmaAmount; i++) {
-        stream << req.vma_kbackward[i];
-    }
-
-    stream << getCheckSumm16b(stream, req.length); // do i need to revert bytes here?
-
-    return stream;
+    return container;
 }
 
-std::iostream& operator>>(std::iostream &stream, ResponseMessage &res)
+/** @brief Constructor for ConfigRequestMessage
+  *
+  */
+ConfigRequestMessage::ConfigRequestMessage()
 {
-    uint16_t checksum_calc = getCheckSumm16b(stream, res.length);
+    for(int i=0; i<ControlAmount; i++) {
+        depth_control[i] = 0;
+    }
 
-    stream >> res.roll;
-    revertBytes(&res.roll);
-    stream >> res.pitch;
-    revertBytes(&res.pitch);
-    stream >> res.yaw;
-    revertBytes(&res.yaw);
+    for(int i=0; i<ControlAmount; i++) {
+        roll_control[i] = 0;
+    }
 
-    stream >> res.rollSpeed;
-    revertBytes(&res.rollSpeed);
-    stream >> res.pitchSpeed;
-    revertBytes(&res.pitchSpeed);
-    stream >> res.yawSpeed;
-    revertBytes(&res.yawSpeed);
+    for(int i=0; i<ControlAmount; i++) {
+        pitch_control[i] = 0;
+    }
 
-    stream >> res.pressure;
-    revertBytes(&res.pressure);
-
-    stream >> res.wf_type;
-    stream >> res.wf_tickrate;
-    stream >> res.wf_voltage;
-    stream >> res.wf_x;
-    revertBytes(&res.wf_x);
-    stream >> res.wf_y;
-    revertBytes(&res.wf_y);
-
-    stream >> res.dev_state;
-    stream >> res.leak_data;
-    revertBytes(&res.leak_data);
-    stream >> res.in_pressure;
-    revertBytes(&res.in_pressure);
-
-    for(int i=0; i<VmaAmount; i++) {
-        stream >> res.vma_current[i];
-        revertBytes(&res.vma_current[i]);
+    for(int i=0; i<ControlAmount; i++) {
+        yaw_control[i] = 0;
     }
 
     for(int i=0; i<VmaAmount; i++) {
-        stream >> res.vma_velocity[i];
+        vma_position[i] = 0;
+    }
+
+    for(int i=0; i<VmaAmount; i++) {
+        vma_setting[i] = 0;
+    }
+
+    for(int i=0; i<VmaAmount; i++) {
+        vma_kforward[i] = 0;
+    }
+
+    for(int i=0; i<VmaAmount; i++) {
+        vma_kbackward[i] = 0;
+    }
+}
+
+/** @brief Form bitwise correct string with computed 16bit checksum from the data stored in ConfigRequestMessage
+  *
+  */
+std::string ConfigRequestMessage::formString()
+{
+    std::string container;
+    container += transformToString(type);
+
+    for(int i=0; i<ControlAmount; i++) {
+        container += transformToString(depth_control[i]);
+    }
+
+    for(int i=0; i<ControlAmount; i++) {
+        container += transformToString(roll_control[i]);
+    }
+
+    for(int i=0; i<ControlAmount; i++) {
+        container += transformToString(pitch_control[i]);
+    }
+
+    for(int i=0; i<ControlAmount; i++) {
+        container += transformToString(yaw_control[i]);
+    }
+
+    for(int i=0; i<VmaAmount; i++) {
+        container += transformToString(vma_position[i]);
+    }
+
+    for(int i=0; i<VmaAmount; i++) {
+        container += transformToString(vma_setting[i]);
+    }
+
+    for(int i=0; i<VmaAmount; i++) {
+        container += transformToString(vma_kforward[i]);
+    }
+
+    for(int i=0; i<VmaAmount; i++) {
+        container += transformToString(vma_kbackward[i]);
+    }
+
+    uint16_t checksum = getChecksum16b(container);
+    container += transformToString(checksum, false); // do i need to revert bytes here?
+
+    return container;
+}
+
+/** @brief Constructor for ResponseMessage
+  *
+  */
+ResponseMessage::ResponseMessage()
+{
+    roll = 0;
+    pitch = 0;
+    yaw = 0;
+
+    rollSpeed = 0;
+    pitchSpeed = 0;
+    yawSpeed = 0;
+
+    pressure = 0;
+
+    wf_type = 0;
+    wf_tickrate = 0;
+    wf_voltage = 0;
+    wf_x = 0;
+    wf_y = 0;
+
+    dev_state = 0;
+    leak_data = 0;
+    in_pressure = 0;
+
+    for(int i=0; i<VmaAmount; i++) {
+        vma_current[i] = 0;
+    }
+
+    for(int i=0; i<VmaAmount; i++) {
+        vma_velocity[i] = 0;
     }
 
     for(int i=0; i<DevAmount; i++) {
-        stream >> res.dev_current[i];
-        revertBytes(&res.dev_current[i]);
+        dev_current[i] = 0;
     }
 
-    stream >> res.vma_errors;
-    revertBytes(&res.vma_errors);
-    stream >> res.dev_errors;
-    stream >> res.pc_errors;
+    vma_errors = 0;
+    dev_errors = 0;
+    pc_errors = 0;
 
-    stream >> res.checksum;
+    checksum = 0;
+}
 
-    if(checksum_calc == res.checksum) {
-        res.check_passed = true;
+/** @brief Parse string bitwise correctly into ResponseMessage and check 16bit checksum.
+  *
+  * @param[in]  &input String to parse.
+  */
+bool ResponseMessage::parseString(std::string &input)
+{
+    pickFromString(input, checksum);
+
+    pickFromString(input, pc_errors);
+    pickFromString(input, dev_errors);
+    pickFromString(input, vma_errors);
+
+    for(int i=0; i<DevAmount; i++) {
+        pickFromString(input, dev_current[DevAmount-i]);
+    }
+
+    for(int i=0; i<VmaAmount; i++) {
+        pickFromString(input, vma_velocity[VmaAmount-i]);
+    }
+
+    for(int i=0; i<VmaAmount; i++) {
+        pickFromString(input, vma_current[VmaAmount-i]);
+    }
+
+    pickFromString(input, in_pressure);
+    pickFromString(input, leak_data);
+    pickFromString(input, dev_state);
+
+    pickFromString(input, wf_y);
+    pickFromString(input, wf_x);
+    pickFromString(input, wf_voltage);
+    pickFromString(input, wf_tickrate);
+    pickFromString(input, wf_type);
+
+    pickFromString(input, pressure);
+
+    pickFromString(input, yawSpeed);
+    pickFromString(input, pitchSpeed);
+    pickFromString(input, rollSpeed);
+
+    pickFromString(input, yaw);
+    pickFromString(input, pitch);
+    pickFromString(input, roll);
+
+    uint16_t checksum_calc = getChecksum16b(input);
+    if(checksum_calc == checksum) {
+        return true;
     }
     else {
-        res.check_passed = false;
+        return false;
+    }
+}
+
+/** @brief Overloaded transform to string function, transforms value to string bitwise correctly
+  *
+  * @param[in]  var     Variable to transform.
+  * @param[in]  revert  Revert bytes or not.
+  */
+std::string transformToString(int8_t var)
+{
+    std::string buf;
+
+    char *it = reinterpret_cast<char*>(&var);
+    buf =+ *it;
+
+    return buf;
+}
+
+/** @brief Overloaded transform to string function, transforms value to string bitwise correctly
+  *
+  * @param[in]  var     Variable to transform.
+  * @param[in]  revert  Revert bytes or not.
+  */
+std::string transformToString(uint8_t var)
+{
+    std::string buf;
+
+    char *it = reinterpret_cast<char*>(&var);
+    buf =+ *it;
+
+    return buf;
+}
+
+/** @brief Overloaded transform to string function, transforms value to string bitwise correctly
+  *
+  * @param[in]  var     Variable to transform.
+  * @param[in]  revert  Revert bytes or not.
+  */
+std::string transformToString(int16_t var, bool revert)
+{
+    std::string buf;
+
+    char *it = reinterpret_cast<char*>(var);
+    if(revert) {
+        buf =+ it[1];
+        buf =+ it[0];
+    }
+    else {
+        buf =+ it[0];
+        buf =+ it[1];
     }
 
-    return stream;
+    return buf;
 }
 
-/** @brief Overloaded revert byte order for 2 byte signed int
+/** @brief Overloaded transform to string function, transforms value to string bitwise correctly
   *
-  * @param[out]  *var Pointer to the variable to revert.
+  * @param[in]  var     Variable to transform.
+  * @param[in]  revert  Revert bytes or not.
   */
-void revertBytes(int16_t *var)
+std::string transformToString(uint16_t var, bool revert)
 {
-    int8_t tmp = 0;
-    int8_t *it = reinterpret_cast<int8_t*>(var);
-    tmp = it[0];
-    it[0] = it[1];
-    it[1] = tmp;
+    std::string buf;
+
+    char *it = reinterpret_cast<char*>(var);
+    if(revert) {
+        buf =+ it[1];
+        buf =+ it[0];
+    }
+    else {
+        buf =+ it[0];
+        buf =+ it[1];
+    }
+
+    return buf;
 }
 
-/** @brief Overloaded revert byte order for 2 byte unsigned int
+/** @brief Overloaded transform to string function, transforms value to string bitwise correctly
   *
-  * @param[out]  *var Pointer to the variable to revert.
+  * @param[in]  var     Variable to transform.
+  * @param[in]  revert  Revert bytes or not.
   */
-void revertBytes(uint16_t *var)
+std::string transformToString(float var, bool revert)
 {
-    uint8_t tmp = 0;
-    uint8_t *it = reinterpret_cast<uint8_t*>(var);
-    tmp = it[0];
-    it[0] = it[1];
-    it[1] = tmp;
-}
+    std::string buf;
 
-/** @brief Overloaded revert byte order for 4 byte float value
-  *
-  * @param[out]  *var Pointer to the variable to revert.
-  */
-void revertBytes(float *var)
-{
-    float tmp = 0;
-    uint8_t *it = reinterpret_cast<uint8_t*>(var);
-    uint8_t *it_tmp = reinterpret_cast<uint8_t*>(&tmp);
+    char *it = reinterpret_cast<char*>(&var);
 
     for(int i=0; i<4; i++) {
-        it_tmp[0] = it[3-i];
+        if(revert) {
+            buf =+ it[3-i];
+        }
+        else {
+            buf =+ it[i];
+        }
     }
-    *var = tmp;
+
+    return buf;
 }
 
-/** @brief Overloaded revert byte order for 2 byte signed int which returns value
+/** @brief Overloaded pick from string, picks value from the end of the string bitwise correctly
   *
-  * @param[in]  *var Variable to revert.
+  * @param[out] &container  Link to container string with bytes.
+  * @param[out] &value      Link to variable in which the data will be stored.
+  * @param[in]  revert      Revert bytes or not.
   */
-int16_t revertBytesRet(int16_t var)
+void pickFromString(std::string &container, uint8_t &value)
 {
-    int8_t tmp = 0;
-    int8_t *it = reinterpret_cast<int8_t*>(var);
-    tmp = it[0];
-    it[0] = it[1];
-    it[1] = tmp;
-    return var;
+    unsigned long size = container.length();
+    char *ptr = reinterpret_cast<char*>(&value);
+    *ptr = container[size];
+
+    container.resize(size-1);
 }
 
-/** @brief Overloaded revert byte order for 2 byte unsigned int which returns value
+/** @brief Overloaded pick from string, picks value from the end of the string bitwise correctly
   *
-  * @param[in]  *var Variable to revert.
+  * @param[out] &container  Link to container string with bytes.
+  * @param[out] &value      Link to variable in which the data will be stored.
+  * @param[in]  revert      Revert bytes or not.
   */
-uint16_t revertBytesRet(uint16_t var)
+void pickFromString(std::string &container, int8_t &value)
 {
-    uint8_t tmp = 0;
-    uint8_t *it = reinterpret_cast<uint8_t*>(var);
-    tmp = it[0];
-    it[0] = it[1];
-    it[1] = tmp;
-    return var;
+    unsigned long size = container.length();
+    char *ptr = reinterpret_cast<char*>(&value);
+    *ptr = container[size];
+
+    container.resize(size-1);
 }
 
-/** @brief Overloaded revert byte order for 4 byte float value which returns value
+/** @brief Overloaded pick from string, picks value from the end of the string bitwise correctly
   *
-  * @param[in]  *var Variable to revert.
+  * @param[out] &container  Link to container string with bytes.
+  * @param[out] &value      Link to variable in which the data will be stored.
+  * @param[in]  revert      Revert bytes or not.
   */
-float revertBytesRet(float var)
+void pickFromString(std::string &container, int16_t &value, bool revert)
 {
-    float tmp = 0;
-    uint8_t *it = reinterpret_cast<uint8_t*>(&var);
-    uint8_t *it_tmp = reinterpret_cast<uint8_t*>(&tmp);
-
-    for(int i=0; i<4; i++) {
-        it_tmp[0] = it[3-i];
+    unsigned long size = container.length();
+    char *ptr = reinterpret_cast<char*>(&value);
+    if(revert) {
+        ptr[1] = container[size-1];
+        ptr[0] = container[size];
     }
-    var = tmp;
-    return var;
+    else {
+        ptr[0] = container[size-1];
+        ptr[1] = container[size];
+    }
+
+    container.resize(size-2);
+}
+
+/** @brief Overloaded pick from string, picks value from the end of the string bitwise correctly
+  *
+  * @param[out] &container  Link to container string with bytes.
+  * @param[out] &value      Link to variable in which the data will be stored.
+  * @param[in]  revert      Revert bytes or not.
+  */
+void pickFromString(std::string &container, uint16_t &value, bool revert)
+{
+    unsigned long size = container.length();
+    char *ptr = reinterpret_cast<char*>(&value);
+    if(revert) {
+        ptr[1] = container[size-1];
+        ptr[0] = container[size];
+    }
+    else {
+        ptr[0] = container[size-1];
+        ptr[1] = container[size];
+    }
+
+    container.resize(size-2);
+}
+
+/** @brief Overloaded pick from string, picks value from the end of the string bitwise correctly
+  *
+  * @param[out] &container  Link to container string with bytes.
+  * @param[out] &value      Link to variable in which the data will be stored.
+  * @param[in]  revert      Revert bytes or not.
+  */
+void pickFromString(std::string &container, float &value, bool revert)
+{
+    unsigned long size = container.length();
+    char *ptr = reinterpret_cast<char*>(&value);
+    for(size_t i=0; i<4; i++) {
+        if(revert) {
+            ptr[i] = container[size-i];
+        }
+        else {
+            ptr[i] = container[size-(3-i)];
+        }
+    }
+
+    container.resize(size-4);
 }
 
 /** @brief Gets 16 bit checksum for the content of the stream
@@ -225,21 +433,23 @@ float revertBytesRet(float var)
   * @param[in]  &msg    Link to the stream
   * @param[in]  length  Length of the message in the stream
   */
-uint16_t getCheckSumm16b(std::iostream &msg, uint8_t length)
+uint16_t getChecksum16b(std::string &msg)
 {
-    std::streampos pos = msg.tellg();
-    uint16_t crc = 0;
+    unsigned long length = msg.length();
+    char *cstr = new char[length+1];
+    std::strcpy(cstr, msg.c_str());
 
-    for(int i=0; i < length - 2; i++) {
+    uint16_t crc;
+    //uint8_t *ptr = reinterpret_cast<uint8_t*>(cstr); // maybe i don't need this
+    for(unsigned long i=0; i < length - 2; i++) {
         crc = static_cast<uint8_t>((crc >> 8) | (crc << 8));
-        crc ^= msg.peek();
-        crc ^= static_cast<uint8_t>(crc & 0xff) >> 4;
+        crc ^= cstr[i];
+        crc ^= static_cast<uint8_t>(crc) & 0x00FF >> 4;
         crc ^= (crc << 8) << 4;
         crc ^= ((crc & 0xff) << 4) << 1;
     }
 
-    msg.seekg(pos);
-
+    delete[] cstr;
     return crc;
 }
 
