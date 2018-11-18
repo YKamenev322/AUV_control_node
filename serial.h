@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include <unistd.h>     /* UNIX standard function definitions */
 #include <fcntl.h>      /* File control definitions */
@@ -32,7 +33,9 @@ public:
     ~Serial();
 
     Serial& operator<<(const std::string data);
+    Serial& operator<<(const std::vector<uint8_t> data);
     Serial& operator>>(std::string &data);
+    Serial& operator>>(std::vector<uint8_t> &data);
 
     /// Maintaining port state
     bool openPort(std::string filename);
@@ -42,7 +45,9 @@ public:
 
     /// Communication
     bool writePort(std::string data);
+    bool writePort(std::vector<uint8_t> data);
     bool readPort(std::string &data, size_t bytes);
+    bool readPort(std::vector<uint8_t> &data, size_t bytes);
     size_t bytesAvailable();
 
 private:

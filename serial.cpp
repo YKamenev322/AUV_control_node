@@ -82,6 +82,28 @@ Serial& Serial::operator>>(std::string &data)
     return *this;
 }
 
+/** @brief Overloaded << operator, used to write strings to ports.
+  *
+  * This is the overloaded << operator, used to write strings to ports.
+  * @param[in]  data Data string which will be written to port.
+  */
+Serial& Serial::operator<<(const std::vector<uint8_t> data)
+{
+    writePort(data);
+    return *this;
+}
+
+/** @brief Overloaded >> operator, used to read all available bytes to strings from ports.
+  *
+  * This is the overloaded >> operator, used to read all available bytes to strings from ports.
+  * @param[in]  data Data string which will be written to port.
+  */
+Serial& Serial::operator>>(std::vector<uint8_t> &data)
+{
+    readPort(data, bytesAvailable());
+    return *this;
+}
+
 /** @brief Try to open device file.
   *
   * This function trying to open device file.
@@ -244,6 +266,23 @@ bool Serial::writePort(std::string data)
     return true;
 }
 
+/** @brief Write string to port.
+  *
+  * This function writes string to port.
+  * @param[in]  fd File descriptor of opened device file.
+  */
+bool Serial::writePort(std::vector<uint8_t> data)
+{
+    if(!isOpened()) {
+        std::cerr << "File not opened yet!" << std::endl;
+        return false;
+    }
+
+    uint8_t *ptr = data.data();
+    write(file, reinterpret_cast<void*>(ptr), data.size());
+    return true;
+}
+
 /** @brief Read bytes from port.
   *
   * This function checks is any device opened.
@@ -268,6 +307,36 @@ bool Serial::readPort(std::string &data, size_t bytes)
     data.clear();
     for(size_t i=0; i<bytes; i++) {
         data += buf[i];
+    }
+    delete[] buf;
+
+    return true;
+}
+
+/** @brief Read bytes from port.
+  *
+  * This function checks is any device opened.
+  * @param[out]  &data Link to string in which will be placed data from port.
+  * @param[in]   bytes Number of bytes to read.
+  */
+bool Serial::readPort(std::vector<uint8_t> &data, size_t bytes)
+{
+    if(!isOpened()) {
+        std::cerr << "File not opened yet!" << std::endl;
+        return false;
+    }
+
+    if(bytesAvailable() < bytes-1) {
+        std::cerr << "There are no that many bytes in file!" << std::endl;
+        return false;
+    }
+
+    uint8_t *buf = new uint8_t[bytes];
+    read(file, reinterpret_cast<void*>(buf), bytes);
+
+    data.clear();
+    for(size_t i=0; i<bytes; i++) {
+        data.push_back(buf[i]);
     }
     delete[] buf;
 

@@ -2,8 +2,7 @@
 #define MESSAGES_H
 
 #include <stdint.h> /*  */
-#include <string> /* */
-#include <cstring>
+#include <vector>
 
 #include "serial.h"
 
@@ -52,19 +51,19 @@ enum DevNames {
 /// Number of the devs
 static const uint8_t DevAmount = 6;
 
-std::string transformToString(int8_t var);
-std::string transformToString(uint8_t var);
-std::string transformToString(int16_t var, bool revert = true);
-std::string transformToString(uint16_t var, bool revert = true);
-std::string transformToString(float var, bool revert = true);
+void pushToVector(std::vector<uint8_t> &vector, int8_t var);
+void pushToVector(std::vector<uint8_t> &vector, uint8_t var);
+void pushToVector(std::vector<uint8_t> &vector, int16_t var, bool revert = true);
+void pushToVector(std::vector<uint8_t> &vector, uint16_t var, bool revert = true);
+void pushToVector(std::vector<uint8_t> &vector, float var, bool revert = true);
 
-void pickFromString(std::string &container, int8_t &value);
-void pickFromString(std::string &container, uint8_t &value);
-void pickFromString(std::string &container, int16_t &value, bool revert=true);
-void pickFromString(std::string &container, uint16_t &value, bool revert=true);
-void pickFromString(std::string &container, float &value, bool revert=true);
+void popFromVector(std::vector<uint8_t> &container, int8_t &output);
+void popFromVector(std::vector<uint8_t> &container, uint8_t &output);
+void popFromVector(std::vector<uint8_t> &container, int16_t &output, bool revert=true);
+void popFromVector(std::vector<uint8_t> &container, uint16_t &output, bool revert=true);
+void popFromVector(std::vector<uint8_t> &container, float &output, bool revert=true);
 
-uint16_t getChecksum16b(std::string &msg);
+uint16_t getChecksum16b(std::vector<uint8_t> &msg);
 
 /** @brief Structure for storing and processing data from the STM32 normal request message protocol
  * Shore send requests and STM send responses
@@ -92,7 +91,7 @@ struct RequestMessage
     uint8_t pc_reset;
     //uint16_t checksum;
 
-    std::string formString();
+    std::vector<uint8_t> formVector();
 };
 
 /** @brief Structure for storing and processing data from the STM32 configuration request message protocol
@@ -119,7 +118,7 @@ struct ConfigRequestMessage
 
     //uint16_t checksum;
 
-    std::string formString();
+    std::vector<uint8_t> formVector();
 };
 
 /** @brief Structure for storing and processing data from the STM32 configuration response message protocol
@@ -162,7 +161,7 @@ struct ResponseMessage
 
     uint16_t checksum;
 
-    bool parseString(std::string &input);
+    bool parseVector(std::vector<uint8_t> &input);
 };
 
 /* Direct mode */

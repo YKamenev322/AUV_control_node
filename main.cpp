@@ -9,22 +9,25 @@ using namespace std;
 int main()
 {
     cout << "Program started" << endl;
-    cout << "Enter name of the device file:" << endl;
+    //cout << "Enter name of the device file:" << endl;
 
-    string file;
-    cin >> file;
-
+    string file = "/dev/ttyUSB1";
     Serial port(file, 9600, 8, PARITY_NONE, 1);
+
+    if(!port.isOpened()) {
+        cout << "Failed to open the port!" << endl;
+        //return 0;
+    }
 
     RequestMessage request;
     request.march = 666;
     request.depth = 999;
-    string output = request.formString();
+    vector<uint8_t> output = request.formVector();
 
     cout << "Sending request message // Size: " << output.size() << endl;
     port << output;
 
-    string answer;
+    vector<uint8_t> answer;
     cout << " Waiting for the response... " << endl;
     ResponseMessage response;
     while(port.bytesAvailable() < response.length) {
@@ -33,7 +36,7 @@ int main()
 
     cout << " Got response! Bytes: " << port.bytesAvailable() << endl;
     port >> answer;
-    bool correct = response.parseString(answer);
+    bool correct = response.parseVector(answer);
 
     if(correct) {
         cout << " Response correct! " << endl;
