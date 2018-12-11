@@ -278,8 +278,15 @@ bool Serial::writePort(std::vector<uint8_t> data)
         return false;
     }
 
-    uint8_t *ptr = data.data();
+    char *ptr = reinterpret_cast<char*>(data.data());
+    unsigned long bytes = data.size();
+    char *buf = new char[bytes];
+    for(size_t i=0; i<bytes; i++) {
+        buf[i] = ptr[i];
+    }
     write(file, reinterpret_cast<void*>(ptr), data.size());
+    delete[] buf;
+
     return true;
 }
 

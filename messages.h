@@ -59,9 +59,9 @@ void pushToVector(std::vector<uint8_t> &vector, float var, bool revert = true);
 
 void popFromVector(std::vector<uint8_t> &container, int8_t &output);
 void popFromVector(std::vector<uint8_t> &container, uint8_t &output);
-void popFromVector(std::vector<uint8_t> &container, int16_t &output, bool revert=true);
-void popFromVector(std::vector<uint8_t> &container, uint16_t &output, bool revert=true);
-void popFromVector(std::vector<uint8_t> &container, float &output, bool revert=true);
+void popFromVector(std::vector<uint8_t> &container, int16_t &output, bool revert = false);
+void popFromVector(std::vector<uint8_t> &container, uint16_t &output, bool revert = false);
+void popFromVector(std::vector<uint8_t> &container, float &output, bool revert = false);
 
 uint16_t getChecksum16b(std::vector<uint8_t> &msg);
 

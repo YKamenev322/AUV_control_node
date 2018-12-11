@@ -50,7 +50,7 @@ std::vector<uint8_t> RequestMessage::formVector()
     pushToVector(container, pc_reset);
 
     uint16_t checksum = getChecksum16b(container);
-    pushToVector(container, checksum, false); // do i need to revert bytes here?
+    pushToVector(container, checksum); // do i need to revert bytes here?
 
     return container;
 }
@@ -191,6 +191,8 @@ bool ResponseMessage::parseVector(std::vector<uint8_t> &input)
 {
     popFromVector(input, checksum);
 
+    uint16_t checksum_calc = getChecksum16b(input);
+
     popFromVector(input, pc_errors);
     popFromVector(input, dev_errors);
     popFromVector(input, vma_errors);
@@ -227,7 +229,6 @@ bool ResponseMessage::parseVector(std::vector<uint8_t> &input)
     popFromVector(input, pitch);
     popFromVector(input, roll);
 
-    uint16_t checksum_calc = getChecksum16b(input);
     if(checksum_calc == checksum) {
         return true;
     }
@@ -398,7 +399,24 @@ void popFromVector(std::vector<uint8_t> &vector, float &output, bool revert)
         }
     }
 }
+/*
+void Server::addCheckSumm16b(uint8_t * msg, uint16_t length)//i теперь не с 0, а с 1
+{
+    uint16_t crc = 0;
+    int i = 0;
 
+    for(i=0; i < length - 2; i++){
+        crc = (uint8_t)(crc >> 8) | (crc << 8);
+        crc ^= msg[i];
+        crc ^= (uint8_t)(crc & 0xff) >> 4;
+        crc ^= (crc << 8) << 4;
+        crc ^= ((crc & 0xff) << 4) << 1;
+    }
+
+    msg[length-2] = (uint8_t) (crc >> 8);
+    msg[length-1] = (uint8_t) crc;
+}
+*/
 /** @brief Gets 16 bit checksum for the content of the stream
   *
   * @param[in]  &msg    Link to the stream
@@ -410,9 +428,9 @@ uint16_t getChecksum16b(std::vector<uint8_t> &vector)
     for(unsigned long i=0; i < vector.size(); i++) {
         crc = static_cast<uint8_t>((crc >> 8) | (crc << 8));
         crc ^= vector[i];
-        crc ^= static_cast<uint8_t>(crc) & 0x00FF >> 4;
+        crc ^= static_cast<uint8_t>(crc & 0x00FF) >> 4;
         crc ^= (crc << 8) << 4;
-        crc ^= ((crc & 0xff) << 4) << 1;
+        crc ^= ((crc & 0xFF) << 4) << 1;
     }
     return crc;
 }
