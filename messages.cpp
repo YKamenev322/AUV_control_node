@@ -399,24 +399,7 @@ void popFromVector(std::vector<uint8_t> &vector, float &output, bool revert)
         }
     }
 }
-/*
-void Server::addCheckSumm16b(uint8_t * msg, uint16_t length)//i теперь не с 0, а с 1
-{
-    uint16_t crc = 0;
-    int i = 0;
 
-    for(i=0; i < length - 2; i++){
-        crc = (uint8_t)(crc >> 8) | (crc << 8);
-        crc ^= msg[i];
-        crc ^= (uint8_t)(crc & 0xff) >> 4;
-        crc ^= (crc << 8) << 4;
-        crc ^= ((crc & 0xff) << 4) << 1;
-    }
-
-    msg[length-2] = (uint8_t) (crc >> 8);
-    msg[length-1] = (uint8_t) crc;
-}
-*/
 /** @brief Gets 16 bit checksum for the content of the stream
   *
   * @param[in]  &msg    Link to the stream
@@ -425,13 +408,15 @@ void Server::addCheckSumm16b(uint8_t * msg, uint16_t length)//i теперь н�
 uint16_t getChecksum16b(std::vector<uint8_t> &vector)
 {
     uint16_t crc = 0;
+
     for(unsigned long i=0; i < vector.size(); i++) {
-        crc = static_cast<uint8_t>((crc >> 8) | (crc << 8));
+        crc = static_cast<uint16_t>((crc >> 8) | (crc << 8));
         crc ^= vector[i];
-        crc ^= static_cast<uint8_t>(crc & 0x00FF) >> 4;
+        crc ^= static_cast<uint8_t>((crc & 0xFF) >> 4);
         crc ^= (crc << 8) << 4;
-        crc ^= ((crc & 0xFF) << 4) << 1;
+        crc ^= ((crc & 0xff) << 4) << 1;
     }
+
     return crc;
 }
 
