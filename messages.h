@@ -24,20 +24,6 @@ enum VmaNames {
 /// Number of the propellers
 static const uint8_t VmaAmount = 8;
 
-/** Enumerator for constants in the automatic control system
- */
-enum ControlConstantNames {
-    CONTROL_K1 = 0,
-    CONTROL_K2,
-    CONTROL_K3,
-    CONTROL_K4,
-    CONTROL_IBORDERS,
-    CONTROL_PGAIN,
-    CONTROL_IGAIN
-};
-/// Number of the control constants
-static const uint8_t ControlAmount = 7;
-
 /** Enumerator for devs names
  */
 enum DevNames {
@@ -53,9 +39,9 @@ static const uint8_t DevAmount = 6;
 
 void pushToVector(std::vector<uint8_t> &vector, int8_t var);
 void pushToVector(std::vector<uint8_t> &vector, uint8_t var);
-void pushToVector(std::vector<uint8_t> &vector, int16_t var, bool revert = true);
-void pushToVector(std::vector<uint8_t> &vector, uint16_t var, bool revert = true);
-void pushToVector(std::vector<uint8_t> &vector, float var, bool revert = true);
+void pushToVector(std::vector<uint8_t> &vector, int16_t var, bool revert = false);
+void pushToVector(std::vector<uint8_t> &vector, uint16_t var, bool revert = false);
+void pushToVector(std::vector<uint8_t> &vector, float var, bool revert = false);
 
 void popFromVector(std::vector<uint8_t> &container, int8_t &output);
 void popFromVector(std::vector<uint8_t> &container, uint8_t &output);
@@ -94,33 +80,6 @@ struct RequestMessage
     std::vector<uint8_t> formVector();
 };
 
-/** @brief Structure for storing and processing data from the STM32 configuration request message protocol
- * Shore send requests and STM send responses
- */
-struct ConfigRequestMessage
-{
-    ConfigRequestMessage();
-
-    /// Length in bytes of the configuration message protocol
-    const static uint8_t length = 195;
-
-    /// Type code for the configuration message protocol
-    const static uint8_t type = 0x55;
-    float depth_control[ControlAmount];
-    float roll_control[ControlAmount];
-    float pitch_control[ControlAmount];
-    float yaw_control[ControlAmount];
-
-    uint8_t vma_position[VmaAmount];
-    uint8_t vma_setting[VmaAmount];
-    uint8_t vma_kforward[VmaAmount];
-    uint8_t vma_kbackward[VmaAmount];
-
-    //uint16_t checksum;
-
-    std::vector<uint8_t> formVector();
-};
-
 /** @brief Structure for storing and processing data from the STM32 configuration response message protocol
  * Shore send requests and STM send responses
  */
@@ -129,30 +88,23 @@ struct ResponseMessage
     ResponseMessage();
 
     /// Length in bytes of the response message protocol
-    const static uint8_t length = 72;
+    const static uint8_t length = 70;
 
-    int16_t roll;
-    int16_t pitch;
-    int16_t yaw;
+    float roll;
+    float pitch;
+    float yaw;
 
-    int16_t rollSpeed;
-    int16_t pitchSpeed;
-    int16_t yawSpeed;
+    float rollSpeed;
+    float pitchSpeed;
+    float yawSpeed;
 
-    uint16_t pressure;
-
-    uint8_t wf_type;
-    uint8_t wf_tickrate;
-    uint8_t wf_voltage;
-    float wf_x;
-    float wf_y;
+    float depth;
+    float in_pressure;
 
     uint8_t dev_state;
     int16_t leak_data;
-    int16_t in_pressure;
 
     uint16_t vma_current[VmaAmount];
-    int8_t vma_velocity[VmaAmount];
     uint16_t dev_current[DevAmount];
 
     uint16_t vma_errors;
@@ -163,20 +115,5 @@ struct ResponseMessage
 
     bool parseVector(std::vector<uint8_t> &input);
 };
-
-/* Direct mode */
-#define REQUEST_DIRECT_CODE             0xAA
-#define REQUEST_DIRECT_LENGTH           11
-
-#define REQUEST_DIRECT_TYPE             0
-#define REQUEST_DIRECT_1                1
-#define REQUEST_DIRECT_2                2
-#define REQUEST_DIRECT_3                3
-#define REQUEST_DIRECT_4                4
-#define REQUEST_DIRECT_5                5
-#define REQUEST_DIRECT_6                6
-#define REQUEST_DIRECT_7                7
-#define REQUEST_DIRECT_8                8
-#define REQUEST_DIRECT_CHECKSUM         9
 
 #endif // MESSAGES_H

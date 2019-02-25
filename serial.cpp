@@ -113,7 +113,6 @@ bool Serial::openPort(std::string filename)
 {
     file = open(filename.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
     if (file < 0) {
-        std::cerr << "Could not open port: " << filename << " // Error: " << file << std::endl;
         file = 0;
         return false;
     }
@@ -141,7 +140,6 @@ bool Serial::isOpened()
 bool Serial::closePort()
 {
     if(!isOpened()) {
-        std::cerr << "File not opened yet!" << std::endl;
         return false;
     }
 
@@ -150,7 +148,6 @@ bool Serial::closePort()
         return true;
     }
 
-    std::cerr << "Could not close port: " << file << " // Error: " << out << std::endl;
     return false;
 }
 
@@ -166,7 +163,6 @@ bool Serial::configurePort(int new_baudrate, int new_databits, int new_parity, i
 {
     /* Is file opened */
     if(!isOpened()) {
-        std::cerr << "File not opened yet!" << std::endl;
         return false;
     }
     /* Structure for port options */
@@ -182,7 +178,6 @@ bool Serial::configurePort(int new_baudrate, int new_databits, int new_parity, i
             break;
         }
         if(i == baudRates_num-1) {
-            std::cerr << "Invalid baud rate!" << std::endl;
             return false;
         }
     }
@@ -199,7 +194,6 @@ bool Serial::configurePort(int new_baudrate, int new_databits, int new_parity, i
     case 8: options.c_cflag |= CS8;
         break;
     default:
-        std::cerr << "Invalid data bits number!" << std::endl;
         return false;
     }
     databits = new_databits;
@@ -220,7 +214,6 @@ bool Serial::configurePort(int new_baudrate, int new_databits, int new_parity, i
         options.c_iflag |= (INPCK | ISTRIP);
         break;
     default:
-        std::cerr << "Invalid parity!" << std::endl;
         return false;
     }
     parity = new_parity;
@@ -231,7 +224,6 @@ bool Serial::configurePort(int new_baudrate, int new_databits, int new_parity, i
     case 2:  options.c_cflag &= ~copyVar(CSTOPB);
         break;
     default:
-        std::cerr << "Invalid stop bits number!" << std::endl;
         return false;
     }
     stopbits = new_stopbits;
@@ -251,7 +243,6 @@ bool Serial::configurePort(int new_baudrate, int new_databits, int new_parity, i
 bool Serial::writePort(std::string data)
 {
     if(!isOpened()) {
-        std::cerr << "File not opened yet!" << std::endl;
         return false;
     }
 
@@ -260,7 +251,10 @@ bool Serial::writePort(std::string data)
     for(size_t i=0; i<bytes; i++) {
         buf[i] = data[i];
     }
-    write(file, reinterpret_cast<void*>(buf), bytes);
+    if(write(file, reinterpret_cast<void*>(buf), bytes) < static_cast<long>(bytes)) {
+	delete[] buf;
+	return false;
+    }
     delete[] buf;
 
     return true;
@@ -274,7 +268,6 @@ bool Serial::writePort(std::string data)
 bool Serial::writePort(std::vector<uint8_t> data)
 {
     if(!isOpened()) {
-        std::cerr << "File not opened yet!" << std::endl;
         return false;
     }
 
@@ -299,12 +292,10 @@ bool Serial::writePort(std::vector<uint8_t> data)
 bool Serial::readPort(std::string &data, size_t bytes)
 {
     if(!isOpened()) {
-        std::cerr << "File not opened yet!" << std::endl;
         return false;
     }
 
     if(bytesAvailable() < bytes-1) {
-        std::cerr << "There are no that many bytes in file!" << std::endl;
         return false;
     }
 
@@ -329,12 +320,10 @@ bool Serial::readPort(std::string &data, size_t bytes)
 bool Serial::readPort(std::vector<uint8_t> &data, size_t bytes)
 {
     if(!isOpened()) {
-        std::cerr << "File not opened yet!" << std::endl;
         return false;
     }
 
     if(bytesAvailable() < bytes-1) {
-        std::cerr << "There are no that many bytes in file!" << std::endl;
         return false;
     }
 
@@ -357,13 +346,25 @@ bool Serial::readPort(std::vector<uint8_t> &data, size_t bytes)
 size_t Serial::bytesAvailable()
 {
     if(!isOpened()) {
-        std::cerr << "File not opened yet!" << std::endl;
         return 0;
     }
 
     size_t bytes = 0;
     ioctl(file, FIONREAD, &bytes);
     return bytes;
+}
+
+/** @brief Flushes I/O buffers
+  *
+  */
+bool Serial::flush()
+{
+    if(!isOpened()) {
+        return false;
+    }
+
+    tcflush(file, TCIOFLUSH);
+    return true;
 }
 
 unsigned int copyVar(int var)

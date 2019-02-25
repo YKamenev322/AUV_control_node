@@ -55,90 +55,6 @@ std::vector<uint8_t> RequestMessage::formVector()
     return container;
 }
 
-/** @brief Constructor for ConfigRequestMessage
-  *
-  */
-ConfigRequestMessage::ConfigRequestMessage()
-{
-    for(int i=0; i<ControlAmount; i++) {
-        depth_control[i] = 0;
-    }
-
-    for(int i=0; i<ControlAmount; i++) {
-        roll_control[i] = 0;
-    }
-
-    for(int i=0; i<ControlAmount; i++) {
-        pitch_control[i] = 0;
-    }
-
-    for(int i=0; i<ControlAmount; i++) {
-        yaw_control[i] = 0;
-    }
-
-    for(int i=0; i<VmaAmount; i++) {
-        vma_position[i] = 0;
-    }
-
-    for(int i=0; i<VmaAmount; i++) {
-        vma_setting[i] = 0;
-    }
-
-    for(int i=0; i<VmaAmount; i++) {
-        vma_kforward[i] = 0;
-    }
-
-    for(int i=0; i<VmaAmount; i++) {
-        vma_kbackward[i] = 0;
-    }
-}
-
-/** @brief Form bitwise correct string with computed 16bit checksum from the data stored in ConfigRequestMessage
-  *
-  */
-std::vector<uint8_t> ConfigRequestMessage::formVector()
-{
-    std::vector<uint8_t> container;
-    pushToVector(container, type);
-
-    for(int i=0; i<ControlAmount; i++) {
-        pushToVector(container, depth_control[i]);
-    }
-
-    for(int i=0; i<ControlAmount; i++) {
-        pushToVector(container, roll_control[i]);
-    }
-
-    for(int i=0; i<ControlAmount; i++) {
-        pushToVector(container, pitch_control[i]);
-    }
-
-    for(int i=0; i<ControlAmount; i++) {
-        pushToVector(container, yaw_control[i]);
-    }
-
-    for(int i=0; i<VmaAmount; i++) {
-        pushToVector(container, vma_position[i]);
-    }
-
-    for(int i=0; i<VmaAmount; i++) {
-        pushToVector(container, vma_setting[i]);
-    }
-
-    for(int i=0; i<VmaAmount; i++) {
-        pushToVector(container, vma_kforward[i]);
-    }
-
-    for(int i=0; i<VmaAmount; i++) {
-        pushToVector(container, vma_kbackward[i]);
-    }
-
-    uint16_t checksum = getChecksum16b(container);
-    pushToVector(container, checksum, false); // do i need to revert bytes here?
-
-    return container;
-}
-
 /** @brief Constructor for ResponseMessage
   *
   */
@@ -152,24 +68,14 @@ ResponseMessage::ResponseMessage()
     pitchSpeed = 0;
     yawSpeed = 0;
 
-    pressure = 0;
-
-    wf_type = 0;
-    wf_tickrate = 0;
-    wf_voltage = 0;
-    wf_x = 0;
-    wf_y = 0;
+    depth = 0;
+    in_pressure = 0;
 
     dev_state = 0;
     leak_data = 0;
-    in_pressure = 0;
 
     for(int i=0; i<VmaAmount; i++) {
         vma_current[i] = 0;
-    }
-
-    for(int i=0; i<VmaAmount; i++) {
-        vma_velocity[i] = 0;
     }
 
     for(int i=0; i<DevAmount; i++) {
@@ -193,6 +99,10 @@ bool ResponseMessage::parseVector(std::vector<uint8_t> &input)
 
     uint16_t checksum_calc = getChecksum16b(input);
 
+    if(checksum_calc != checksum) {
+         return false;
+     }
+
     popFromVector(input, pc_errors);
     popFromVector(input, dev_errors);
     popFromVector(input, vma_errors);
@@ -202,24 +112,14 @@ bool ResponseMessage::parseVector(std::vector<uint8_t> &input)
     }
 
     for(int i=0; i<VmaAmount; i++) {
-        popFromVector(input, vma_velocity[VmaAmount-i]);
-    }
-
-    for(int i=0; i<VmaAmount; i++) {
         popFromVector(input, vma_current[VmaAmount-i]);
     }
 
-    popFromVector(input, in_pressure);
     popFromVector(input, leak_data);
     popFromVector(input, dev_state);
 
-    popFromVector(input, wf_y);
-    popFromVector(input, wf_x);
-    popFromVector(input, wf_voltage);
-    popFromVector(input, wf_tickrate);
-    popFromVector(input, wf_type);
-
-    popFromVector(input, pressure);
+    popFromVector(input, in_pressure);
+    popFromVector(input, depth);
 
     popFromVector(input, yawSpeed);
     popFromVector(input, pitchSpeed);
@@ -229,12 +129,7 @@ bool ResponseMessage::parseVector(std::vector<uint8_t> &input)
     popFromVector(input, pitch);
     popFromVector(input, roll);
 
-    if(checksum_calc == checksum) {
-        return true;
-    }
-    else {
-        return false;
-    }
+    return true;
 }
 
 /** @brief Overloaded transform to string function, transforms value to string bitwise correctly
@@ -348,10 +243,12 @@ void popFromVector(std::vector<uint8_t> &vector, int16_t &output, bool revert)
     uint8_t *ptr = reinterpret_cast<uint8_t*>(&output);
     if(revert) {
         ptr[1] = vector.back();
+        vector.pop_back();
         ptr[0] = vector.back();
     }
     else {
         ptr[0] = vector.back();
+        vector.pop_back();
         ptr[1] = vector.back();
     }
     vector.pop_back();
@@ -407,16 +304,17 @@ void popFromVector(std::vector<uint8_t> &vector, float &output, bool revert)
   */
 uint16_t getChecksum16b(std::vector<uint8_t> &vector)
 {
-    uint16_t crc = 0;
+    uint16_t len = vector.size();
+    uint16_t crc = 0xFFFF;
+    uint8_t i = 0;
+    uint8_t g = 0;
 
-    for(unsigned long i=0; i < vector.size(); i++) {
-        crc = static_cast<uint16_t>((crc >> 8) | (crc << 8));
-        crc ^= vector[i];
-        crc ^= static_cast<uint8_t>((crc & 0xFF) >> 4);
-        crc ^= (crc << 8) << 4;
-        crc ^= ((crc & 0xff) << 4) << 1;
+    while (len--) {
+        crc ^= vector[g++] << 8;
+
+        for (i = 0; i < 8; i++)
+            crc = crc & 0x8000 ? (crc << 1) ^ 0x1021 : crc << 1;
     }
-
     return crc;
 }
 
